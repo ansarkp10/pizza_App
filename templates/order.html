@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Details</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: auto;
+            margin-top: 50px;
+        }
+
+        .badge-primary {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .status-message {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+            background-color: #f1f1f1;
+        }
+
+        .status-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .status-pending {
+            color: #ffc107;
+        }
+
+        .status-processing {
+            color: #17a2b8;
+        }
+
+        .status-completed {
+            color: #28a745;
+        }
+
+        .status-canceled {
+            color: #dc3545;
+        }
+
+        #print-invoice-btn {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h3 class="text-center mb-4">Order ID - {{ order.order_id }}</h3>
+        <p class="font-size-lg">Amount - ₹ {{ order.amount }}</p>
+        <span class="badge badge-primary" id="status">{{ order.status }}</span>
+
+        <!-- Status Message and Icon -->
+        <div class="status-message" id="status-message">
+            <i class="fas fa-spinner status-icon status-pending"></i>
+            <p id="status-text">Order is pending...</p>
+        </div>
+
+        <!-- Print Invoice Button -->
+        <div id="print-invoice-btn">
+            <button class="btn btn-success" onclick="printInvoice()">Show Invoice</button>
+        </div>
+    </div>
+
+    <script>
+        var order_id = '{{ order.order_id }}';
+        let socket = new WebSocket('ws://localhost:8000/ws/pizza/' + order_id + '/');
+    
+        socket.onopen = function (e) {
+            console.log('Connection established');
+        };
+    
+        socket.onmessage = function (e) {
+            var data = JSON.parse(e.data);
+            var status = data.status;
+    
+            // Update the status in the UI
+            updateStatus(status);
+    
+            // Check if the order status is "Delivered"
+            if (status.toLowerCase() === "delivered") {
+                showPrintInvoiceOption();
+            }
+        };
+    
+        socket.onclose = function (e) {
+            console.log('Connection closed');
+        };
+    
+        function updateStatus(status) {
+            var statusElement = document.querySelector('#status');
+            var statusTextElement = document.querySelector('#status-text');
+            var statusIconElement = document.querySelector('.status-icon');
+            var printInvoiceBtn = document.querySelector('#print-invoice-btn');
+    
+            // Update the status text in the <p id="status-text"> element
+            statusTextElement.innerHTML = status;
+    
+            // Update the badge showing the status
+            statusElement.innerHTML = status;
+    
+            // Update status message and icon based on received status
+            switch (status.toLowerCase()) {
+                case 'order recieved':
+                    statusIconElement.className = 'fas fa-check-circle status-icon status-completed';
+                    statusTextElement.innerHTML = 'Your order has been received!';
+                    break;
+                case 'baking':
+                    statusIconElement.className = 'fas fa-sync-alt status-icon status-processing';
+                    statusTextElement.innerHTML = 'Your order is baking...';
+                    break;
+                case 'baked':
+                    statusIconElement.className = 'fas fa-sync-alt status-icon status-processing';
+                    statusTextElement.innerHTML = 'Your order is baked and almost ready!';
+                    break;
+                case 'out for delivery':
+                    statusIconElement.className = 'fas fa-truck status-icon status-processing';
+                    statusTextElement.innerHTML = 'Your order is out for delivery!';
+                    break;
+                case 'delivered':
+                    statusIconElement.className = 'fas fa-check-circle status-icon status-completed';
+                    statusTextElement.innerHTML = 'Your order has been delivered!';
+                    printInvoiceBtn.style.display = 'block';  // Show print invoice button
+                    break;
+                default:
+                    break;
+            }
+        }
+    
+        // Function to show the print invoice button
+        function showPrintInvoiceOption() {
+            document.querySelector('#print-invoice-btn').style.display = 'block';
+        }
+    
+
+        function printInvoice() {
+    // Redirect to the Django view that generates and downloads the invoice PDF
+    window.location.href = '/print-invoice/{{ order.order_id }}/';
+}
+
+
+    </script>
+    
+</body>
+
+</html>

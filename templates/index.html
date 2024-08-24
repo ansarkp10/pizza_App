@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block start %}
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AK's Pizza</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .container {
+            margin-top: 20px;
+        }
+        .card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+        .product-title a {
+            color: #333;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .product-title a:hover {
+            color: #007bff;
+        }
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .table thead th {
+            background-color: #007bff;
+            color: #fff;
+            font-weight: bold;
+        }
+        .table tbody tr:nth-child(odd) {
+            background-color: #f2f2f2;
+        }
+        .table tbody tr:hover {
+            background-color: #e9ecef;
+        }
+        .badge-info {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+        .text-accent {
+            color: #007bff;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3 class="text-center mb-4">AK's Pizza</h3>
+
+        <div class="row">
+            {% for p in pizza %}
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card product-card">
+                    <a href="#quick-view" data-toggle="modal">
+                        <img class="card-img-top" src="{{ p.image.url }}" alt="Pizza">
+                    </a>
+                    
+                    <div class="card-body">
+                        <h5 class="product-title">
+                            <a href="#quick-view" data-toggle="modal">{{ p.name }}</a>
+                        </h5>
+                        <p class="font-size-ms text-muted">₹ {{ p.price }}</p>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="product-price"><span class="text-accent">₹ {{ p.price }}</span></div>
+                            <button class="btn btn-primary btn-sm" onclick="createOrder({{ p.id }})" type="button">
+                                + <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div>
+            <h3 class="text-center mb-4">All Orders</h3>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order Id</th>
+                            <th>Date Purchased</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td class="py-3">
+                                <a class="nav-link-style font-weight-medium" href="/{{ order.order_id }}">{{ order.order_id }}</a>
+                            </td>
+                            <td class="py-3">{{ order.date }}</td>
+                            <td class="py-3">
+                                <span class="badge badge-info">{{ order.status }}</span>
+                            </td>
+                            <td class="py-3">₹ {{ order.amount }}</td>
+                            <td class="py-3">
+                                <a href="/{{ order.order_id }}" class="btn btn-danger btn-sm">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.0/axios.min.js"></script>
+    <script>
+        function createOrder(id) {
+    axios.post('/api/order', { 'id': id })
+        .then(res => {
+            if (res.data.message === 'Success') {
+                addOrderToTable(res.data.order);  // Add the new order to the table
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function addOrderToTable(order) {
+    // Construct the new row HTML
+    const orderRow = `
+        <tr>
+            <td class="py-3">
+                <a class="nav-link-style font-weight-medium" href="/${order.order_id}">${order.order_id}</a>
+            </td>
+            <td class="py-3">${order.date}</td>
+            <td class="py-3">
+                <span class="badge badge-info">${order.status}</span>
+            </td>
+            <td class="py-3">₹ ${order.amount}</td>
+            <td class="py-3">
+                <a href="/${order.order_id}" class="btn btn-danger btn-sm">View</a>
+            </td>
+        </tr>
+    `;
+
+    // Insert the new row into the table body
+    document.querySelector('tbody').insertAdjacentHTML('beforeend', orderRow);
+}
+
+
+    </script>
+</body>
+</html>
+{% endblock start %}
